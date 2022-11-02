@@ -27,6 +27,8 @@ dependencies {
     // I2P, shadowed external lib
     shadow(implementation('net.i2p:i2p:1.9.1'))
     shadow(implementation('net.i2p.client:streaming:1.9.1'))
+    // newer gson with record supported
+    shadow(implementation('com.google.code.gson:gson:2.10'))
 
     // Fabric API. This is technically optional, but you probably want it anyway.
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
@@ -76,6 +78,7 @@ shadowJar {
     archiveClassifier.set("mca-shadow")
     // avoid classpath collide
     relocate "net.i2p", "info.skyblond.mc.mca.shadow.net.i2p"
+    relocate "com.google.gson", "info.skyblond.mc.mca.shadow.com.google.gson"
 }
 
 remapJar {

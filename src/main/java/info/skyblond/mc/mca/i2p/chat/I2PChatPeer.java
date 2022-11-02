@@ -71,11 +71,6 @@ public class I2PChatPeer<UserType, MessageType> implements AutoCloseable {
      * Either success or fail, the map and the list will be updated.
      */
     public boolean connect(UserType user, Destination destination) {
-        if (this.messageReceiver.getMyDestination().equals(destination)) {
-            // no self-connection
-            return false;
-        }
-
         AtomicBoolean result = new AtomicBoolean(false);
         this.transmitters.compute(user, (u, tx) -> {
             var t = Objects.requireNonNullElseGet(tx, () -> new I2PMessageTransmitter<>(this.messageToStringConverter, this.manager));
