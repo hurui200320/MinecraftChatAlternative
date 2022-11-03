@@ -1,11 +1,12 @@
-package info.skyblond.mc.mca.i2p.chat.rx;
+package info.skyblond.mc.mca.model;
 
+import info.skyblond.mc.mca.model.MCAMessage;
 import net.i2p.data.Destination;
 
 /**
  * The listener for incoming message.
  * */
-public interface InComingMessageListener<T> {
+public interface InComingMessageListener {
     /**
      * Do things when there is a new incoming message.
      * The listener should be thread safe, since
@@ -14,5 +15,5 @@ public interface InComingMessageListener<T> {
      * @param message The parsed incoming message
      * @param source  The address of who sent this message
      * */
-    void onInComingMessage(T message, Destination source);
+    void onInComingMessage(MCAMessage message, Destination source);
 }

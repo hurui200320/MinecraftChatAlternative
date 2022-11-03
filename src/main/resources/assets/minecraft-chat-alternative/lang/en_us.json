@@ -1,4 +1,6 @@
 {
     "chat.type.mca.text": "[%s] <%s> %s",
-    "chat.type.mca.text.narrate": "%s on %s says %s"
+    "chat.type.mca.text.narrate": "%s on %s says %s",
+    "chat.type.mca.system": "[%s] %s",
+    "chat.type.mca.system.narrate": "[%s] %s"
 }

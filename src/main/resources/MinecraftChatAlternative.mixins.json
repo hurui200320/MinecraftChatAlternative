@@ -6,9 +6,8 @@
   "mixins": [
   ],
   "client": [
-    "MixinChatListener",
     "MixinChatScreen",
-    "MixinLocalPlayer"
+    "MixinClientPlayerEntity"
   ],
   "injectors": {
     "defaultRequire": 1

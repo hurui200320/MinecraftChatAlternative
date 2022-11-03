@@ -1,4 +1,4 @@
-package info.skyblond.mc.mca.i2p.chat;
+package info.skyblond.mc.mca.i2p;
 
 import net.i2p.data.Destination;
 

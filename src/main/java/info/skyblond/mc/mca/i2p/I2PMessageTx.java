@@ -1,5 +1,7 @@
-package info.skyblond.mc.mca.i2p.chat.tx;
+package info.skyblond.mc.mca.i2p;
 
+import com.google.gson.Gson;
+import info.skyblond.mc.mca.model.MCAMessage;
 import net.i2p.I2PException;
 import net.i2p.client.streaming.I2PSocket;
 import net.i2p.client.streaming.I2PSocketManager;
@@ -16,18 +18,15 @@ import java.util.function.Function;
 /**
  * A thread-safe message transmitter.
  */
-public class I2PMessageTransmitter<MessageType> implements AutoCloseable {
-    private final Logger logger = LoggerFactory.getLogger(I2PMessageTransmitter.class);
+public class I2PMessageTx implements AutoCloseable {
+    private final Logger logger = LoggerFactory.getLogger(I2PMessageTx.class);
 
-    private final Function<MessageType, String> messageConverter;
+    private final Gson gson;
     private final I2PSocketManager manager;
 
 
-    public I2PMessageTransmitter(
-            Function<MessageType, String> messageConverter,
-            I2PSocketManager manager
-    ) {
-        this.messageConverter = messageConverter;
+    public I2PMessageTx(Gson gson, I2PSocketManager manager) {
+        this.gson = gson;
         this.manager = manager;
     }
 
@@ -82,13 +81,13 @@ public class I2PMessageTransmitter<MessageType> implements AutoCloseable {
     /**
      * Return true if send success.
      */
-    public synchronized boolean sendMessage(@NotNull MessageType message) {
+    public synchronized boolean sendMessage(@NotNull MCAMessage message) {
         if (this.socket == null || this.socket.isClosed()) {
             return false;
         }
 
         try {
-            var text = this.messageConverter.apply(message);
+            var text = gson.toJson(message);
             this.bw.write(text);
             if (!text.endsWith("\n")) {
                 this.bw.write("\n");
