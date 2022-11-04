@@ -1,31 +1,22 @@
 package info.skyblond.mc.mca.i2p;
 
-import com.google.gson.Gson;
-import info.skyblond.mc.mca.model.MCAMessage;
+import info.skyblond.mc.mca.MCAUtils;
+import info.skyblond.mc.mca.model.AuthPayload;
 import info.skyblond.mc.mca.model.MCAPlatform;
+import info.skyblond.mc.mca.model.MessagePayload;
 import net.i2p.I2PException;
 import net.i2p.client.streaming.I2PServerSocket;
+import net.i2p.client.streaming.I2PSocket;
 import net.i2p.client.streaming.I2PSocketManager;
-import net.i2p.client.streaming.I2PSocketManagerFactory;
-import net.i2p.client.streaming.RouterRestartException;
 import net.i2p.data.Destination;
-import net.i2p.util.I2PThread;
 import net.minecraft.text.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.net.ConnectException;
-import java.net.SocketTimeoutException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static info.skyblond.mc.mca.MinecraftChatAlternative.addBroadcastMessageToChat;
+import java.util.concurrent.*;
 
 /**
  * This is the peer in this i2p p2p chat system.
@@ -35,99 +26,44 @@ import static info.skyblond.mc.mca.MinecraftChatAlternative.addBroadcastMessageT
 @SuppressWarnings("unused")
 public class I2PChatPeer implements AutoCloseable {
     private final Logger logger = LoggerFactory.getLogger(I2PChatPeer.class);
-    private final I2PSocketManager manager = I2PSocketManagerFactory.createManager();
+    private final I2PSocketManager manager;
     private final I2PServerSocket serverSocket;
-    private final Gson gson;
 
     public Destination getMyDestination() {
         return this.manager.getSession().getMyDestination();
     }
 
-    public I2PChatPeer(Gson gson) {
-        this.gson = gson;
-        this.serverSocket = manager.getServerSocket();
+    private final ConcurrentHashMap<String, AuthPayload> knownIds = new ConcurrentHashMap<>();
+    private final ConcurrentLinkedQueue<AuthPayload> newPeersQueue = new ConcurrentLinkedQueue<>();
+
+    public I2PChatPeer(I2PSocketManager manager) {
+        this.manager = manager;
+        this.serverSocket = this.manager.getServerSocket();
         // start server thread
-        var t = new I2PThread(() -> {
-            while (true) {
-                try {
-                    var socket = this.serverSocket.accept();
-                    if (socket != null) {
-                        // handle socket
-                        I2PThread thread = new I2PThread(() -> {
-                            try (socket) {
-                                //Receive from clients
-                                BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                                //Send to clients
-                                BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-                                String line;
-                                while ((line = br.readLine()) != null) {
-                                    var message = gson.fromJson(line, MCAMessage.class);
-                                    if (message != null) {
-                                        // TODO handle message
-                                        var sourceProfile = resolveSource(socket.getPeerDestination());
-                                        if (sourceProfile != null) {
-                                            switch (message.parseAction()) {
-                                                case BROADCAST -> addBroadcastMessageToChat(
-                                                        MCAPlatform.I2P,
-                                                        // TODO json to Component?
-                                                        sourceProfile, Text.literal(message.payload()));
-                                                case WHISPER -> {
-                                                    // TODO
-                                                }
-                                                case PEER_EXCHANGE -> {
-                                                    // TODO: Trackers? User sign?
-                                                }
-                                                default -> logger.warn("Unknown message action '{}'", message.action());
-                                            }
-                                        } else {
-                                            logger.warn("Unknown message source '{}'", socket.getPeerDestination().getHash().toBase64());
-                                        }
-                                    }
-                                    // TODO response based on reply
-                                    bw.write("ok\n");
-                                    bw.flush();
-                                }
-                            } catch (IOException e) {
-                                this.logger.error("Failed to handling client", e);
-                            }
-                        });
-                        thread.setName("ClientHandler");
-                        thread.setDaemon(false);
-                        thread.start();
-                    }
-                } catch (RouterRestartException e) {
-                    this.logger.error("I2P router restarted when accepting new connections", e);
-                } catch (I2PException e) {
-                    this.logger.error("Communication error between i2p router (I2PSession)", e);
-                } catch (ConnectException e) {
-                    this.logger.error("I2P server socket closed", e);
-                    this.logger.warn("Receiver stopped because server socket is closed");
-                    break;
-                } catch (SocketTimeoutException e) {
-                    this.logger.error("Socket timeout", e);
-                }
-            }
-            logger.info("Receiver stopped");
-        });
-        t.setDaemon(false);
-        t.setName("I2PMessageRx");
-        t.start();
+        MCAUtils.runLater(new I2PServerSocketHandler(this.serverSocket,
+                this.knownIds, this.newPeersQueue, this::resolveSource));
+        // handle new peers
+        MCAUtils.runLater(new I2PNewPeerHandler(this.newPeersQueue,
+                this.clientSockets, this::connect));
+        // TODO exchange peer periodically?
     }
 
-    private final ConcurrentHashMap<String, I2PMessageTx> transmitters = new ConcurrentHashMap<>();
+    // here are all outgoing connections, we're the client.
+    private final CopyOnWriteArrayList<I2PConnection> clientSockets = new CopyOnWriteArrayList<>();
 
     /**
-     * Find the user with given dest.
+     * Find the user with given socket.
      * Return null if not found.
      */
-    public String resolveSource(Destination source) {
-        var optionTx = this.transmitters.entrySet().stream()
-                .filter(e -> e.getValue().getDest().equals(source))
+    public String resolveSource(I2PSocket source) {
+        var sourceDest = source.getPeerDestination();
+        var optionTx = this.clientSockets.stream()
+                .filter(e -> e.getPeerDestination().equals(sourceDest))
                 .findAny();
         if (optionTx.isEmpty()) {
             return null;
         } else {
-            return optionTx.get().getKey();
+            return optionTx.get().username;
         }
     }
 
@@ -135,28 +71,56 @@ public class I2PChatPeer implements AutoCloseable {
      * Return ture if success.
      * Either success or fail, the map and the list will be updated.
      */
-    public boolean connect(String user, Destination destination) {
-        AtomicBoolean result = new AtomicBoolean(false);
-        this.transmitters.compute(user, (u, tx) -> {
-            var t = Objects.requireNonNullElseGet(tx, () -> new I2PMessageTx(this.gson, this.manager));
-            result.set(t.connect(destination));
-            return t;
-        });
-        return result.get();
+    public boolean connect(String username, Destination destination) {
+        var oldConnect = this.clientSockets.stream().filter(it -> it.username.equals(username))
+                .findAny().orElse(null);
+        if (oldConnect != null && !oldConnect.isClosed()) {
+            return true;
+        }
+        try {
+            var clientConnect = new I2PConnection(username, this.manager.connect(destination),
+                    socket -> {
+                        this.clientSockets.remove(socket);
+                        MCAUtils.addSystemMessageToChat(MCAPlatform.I2P, Text.literal(
+                                "Lost outgoing connection to " + socket.username));
+                        this.logger.info("Lost outgoing connection to {}", socket.username);
+                        // TODO onFailed: try re-connect using known ids?
+                    });
+            // first send auth
+            if (!clientConnect.auth(getMyDestination())) {
+                this.logger.info("Failed to auth with {}", username);
+                return false;
+            }
+            // then exchange peers
+            var result = clientConnect.exchange(this.knownIds.values().stream().toList());
+            if (result == null) {
+                this.logger.info("Failed to exchange peers with {}", username);
+                return false;
+            }
+            this.newPeersQueue.addAll(result);
+            // we're good, add to client map
+            this.clientSockets.add(clientConnect);
+            MCAUtils.addSystemMessageToChat(MCAPlatform.I2P, Text.literal(
+                    "Connected to " + username));
+            return true;
+        } catch (Exception e) {
+            this.logger.error("Error when connect to " + username, e);
+            return false;
+        }
     }
 
     /**
      * Send message to a user. Async.
      * Return true if success.
      */
-    public CompletableFuture<Boolean> sendMessage(MCAMessage message, String user) {
+    public CompletableFuture<Boolean> sendMessage(MessagePayload chatMessage, String user) {
         return CompletableFuture.supplyAsync(() -> {
-            var tx = this.transmitters.get(user);
-            if (tx == null) {
+            var tx = this.clientSockets.stream().filter(it -> it.username.equals(user)).findAny();
+            if (tx.isEmpty()) {
                 this.logger.warn("User '{}' not found", user);
                 return false;
             } else {
-                return tx.sendMessage(message);
+                return tx.get().message(chatMessage);
             }
         });
     }
@@ -165,7 +129,7 @@ public class I2PChatPeer implements AutoCloseable {
      * Send message to some users.
      * Return the list of failed users.
      */
-    public List<String> sendMessage(MCAMessage message, List<String> users) {
+    public List<String> sendMessage(MessagePayload message, List<String> users) {
         var map = new HashMap<String, CompletableFuture<Boolean>>();
         users.forEach(user -> map.put(user, sendMessage(message, user)));
         return map.entrySet().parallelStream()
@@ -191,23 +155,20 @@ public class I2PChatPeer implements AutoCloseable {
      * Send message to all known users.
      * Return the list of failed users.
      */
-    public List<String> sendMessage(MCAMessage message) {
-        return sendMessage(message, this.transmitters.keySet().stream().toList());
-    }
-
-    /**
-     * Disconnect all clients.
-     * This is not thread-safe: Do not calling this while sending messages.
-     * TODO: Call this on exit server
-     */
-    public void reset() {
-        this.transmitters.forEach((username, tx) -> tx.close());
-        this.transmitters.clear();
+    public List<String> broadcastMessage(String message) {
+        var playerList = MCAUtils.getPlayerList();
+        if (playerList != null) {
+            return sendMessage(new MessagePayload("broadcast", message),
+                    playerList.stream().map(it -> it.getProfile().getName()).toList());
+        }
+        return null;
     }
 
     @Override
     public void close() throws I2PException {
-        this.transmitters.forEach((username, tx) -> tx.close());
+        this.clientSockets.forEach(I2PConnection::close);
+        this.clientSockets.clear();
         this.serverSocket.close();
     }
+
 }

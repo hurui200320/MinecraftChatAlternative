@@ -24,14 +24,19 @@ dependencies {
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
+    // run with online
+    modImplementation "com.ptsmods:devlogin:3.1.1"
+
     // I2P, shadowed external lib
     shadow(implementation('net.i2p:i2p:1.9.1'))
     shadow(implementation('net.i2p.client:streaming:1.9.1'))
     // newer gson with record supported
     shadow(implementation('com.google.code.gson:gson:2.10'))
+    // bencode
+    shadow(implementation('com.dampcake:bencode:1.4'))
 
     // Fabric API. This is technically optional, but you probably want it anyway.
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+//    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 }
 
 processResources {
@@ -79,6 +84,7 @@ shadowJar {
     // avoid classpath collide
     relocate "net.i2p", "info.skyblond.mc.mca.shadow.net.i2p"
     relocate "com.google.gson", "info.skyblond.mc.mca.shadow.com.google.gson"
+    relocate "com.dampcake.bencode", "info.skyblond.mc.mca.shadow.com.dampcake.bencode"
 }
 
 remapJar {

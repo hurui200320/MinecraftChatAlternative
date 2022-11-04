@@ -1,0 +1,10 @@
+{
+  "chat.mca.text": "[%s] <%s> %s",
+  "chat.mca.text.narrate": "%s on %s says %s",
+  "chat.mca.system": "[%s] %s",
+  "chat.mca.system.narrate": "%s: %s",
+  "chat.mca.incoming": "[%s] <%s> whispers to you: %s",
+  "chat.mca.incoming.narrate": "%s on %s whispers to you: %s",
+  "chat.mca.outgoing": "You whisper to [%s] <%s>: %s",
+  "chat.mca.outgoing.narrate": "You whisper to %s on %s: %s"
+}
