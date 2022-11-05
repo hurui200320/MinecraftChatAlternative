@@ -166,7 +166,11 @@ public class I2PTracker implements Runnable {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         var get = new I2PSocketEepGet(I2PAppContext.getGlobalContext(), this.manager,
                 3, -1, -1, null, out, url);
-        if (get.fetch(45 * 1000) && get.getStatusCode() == 200) {
+        if (!get.fetch(45 * 1000)) {
+            this.logger.warn("Timeout on tracker {}", announceUrl);
+            return null;
+        }
+        if (get.getStatusCode() == 200) {
             return out.toByteArray();
         } else {
             this.logger.warn("Wrong response: {}\nAt: {}", out.toString(CHARSET), url);
