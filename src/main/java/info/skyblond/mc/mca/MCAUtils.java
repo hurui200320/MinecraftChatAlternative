@@ -5,23 +5,21 @@ import info.skyblond.mc.mca.model.MCAPlatform;
 import net.i2p.I2PAppContext;
 import net.i2p.data.Destination;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
-import java.util.UUID;
-
-import static info.skyblond.mc.mca.MinecraftChatAlternative.PEER;
+import java.util.List;
 
 // TODO: I don't know why those translation keys are just not working.
 //       They work first, then suddenly stop working.
 public class MCAUtils {
     public static void addOutgoingMessageToChat(
-            MCAPlatform platform,
-            String username,
-            Text content
+            @NotNull MCAPlatform platform,
+            @NotNull String username,
+            @NotNull Text content
     ) {
         var textChatComponent = Text.translatable(
 //                "chat.mca.outgoing", // platform, player, content
@@ -47,9 +45,9 @@ public class MCAUtils {
     }
 
     public static void addIncomingMessageToChat(
-            MCAPlatform platform,
-            String username,
-            Text content
+            @NotNull MCAPlatform platform,
+            @NotNull String username,
+            @NotNull Text content
     ) {
         var textChatComponent = Text.translatable(
 //                "chat.mca.incoming", // platform, player, content
@@ -75,9 +73,9 @@ public class MCAUtils {
     }
 
     public static void addBroadcastMessageToChat(
-            MCAPlatform platform,
-            String username,
-            Text content
+            @NotNull MCAPlatform platform,
+            @NotNull String username,
+            @NotNull Text content
     ) {
         var textChatComponent = Text.translatable(
 //                "chat.mca.text", // platform, player, content
@@ -103,8 +101,8 @@ public class MCAUtils {
     }
 
     public static void addSystemMessageToChat(
-            MCAPlatform platform,
-            Text content
+            @NotNull MCAPlatform platform,
+            @NotNull Text content
     ) {
         var textChatComponent = Text.translatable(
 //                "chat.mca.system", // platform, content
@@ -123,7 +121,7 @@ public class MCAUtils {
         addRawMessage(textChatComponent, narrateChatComponent);
     }
 
-    public static void addRawMessage(Text message, Text narrateMessage) {
+    public static void addRawMessage(@NotNull Text message, @NotNull Text narrateMessage) {
         var minecraft = MinecraftClient.getInstance();
         if (minecraft.inGameHud != null) {
             minecraft.inGameHud.getChatHud().addMessage(message);
@@ -131,7 +129,7 @@ public class MCAUtils {
         minecraft.getNarratorManager().narrateChatMessage(() -> narrateMessage);
     }
 
-    public static String getCurrentUsername() {
+    public static @Nullable String getCurrentUsername() {
         var minecraft = MinecraftClient.getInstance();
         var session = minecraft.getSession();
         if (session != null) {
@@ -140,25 +138,21 @@ public class MCAUtils {
         return null;
     }
 
-    public static UUID getCurrentPlayerUUID() {
-        var minecraft = MinecraftClient.getInstance();
-        var session = minecraft.getSession();
-        if (session != null) {
-            return session.getUuidOrNull();
-        }
-        return null;
-    }
-
-    public static Collection<PlayerListEntry> getPlayerList() {
+    public static @NotNull List<String> getPlayerList() {
         var minecraft = MinecraftClient.getInstance();
         var networkHandler = minecraft.getNetworkHandler();
         if (networkHandler != null) {
-            return networkHandler.getPlayerList();
+            return networkHandler.getPlayerList().stream()
+                    .map(p -> p.getProfile().getName()).toList();
+        } else {
+            if (getCurrentUsername() != null) {
+                return List.of(getCurrentUsername());
+            }
         }
-        return null;
+        return List.of();
     }
 
-    public static void runLater(Runnable r) {
+    public static void runLater(@NotNull Runnable r) {
         var t = new Thread(r);
         t.setDaemon(true);
         t.start();
@@ -171,7 +165,7 @@ public class MCAUtils {
         }
     }
 
-    public static Destination resolveB32Address(String b32Address) {
+    public static @Nullable Destination resolveB32Address(@NotNull String b32Address) {
         try {
             return I2PAppContext.getGlobalContext().namingService().lookup(b32Address);
         } catch (Throwable t) {
@@ -185,7 +179,7 @@ public class MCAUtils {
     public static String tryConnectB32Address(I2PChatPeer peer, String username, String b32Address) {
         var dest = MCAUtils.resolveB32Address(b32Address);
         if (dest != null) {
-            if (!PEER.connect(username, dest)) {
+            if (!peer.connect(username, dest)) {
                 // failed
                 return "Connection rejected by " + username;
             }

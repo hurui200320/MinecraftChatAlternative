@@ -1,7 +1,9 @@
 package info.skyblond.mc.mca.model;
 
+import org.jetbrains.annotations.NotNull;
+
 public record MessagePayload(
-        String type,
-        String content
+        @NotNull String type,
+        @NotNull String content // how can you send null in chat?
 ) {
 }

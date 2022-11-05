@@ -8,6 +8,8 @@ import info.skyblond.mc.mca.model.MCARequest;
 import info.skyblond.mc.mca.model.MessagePayload;
 import net.i2p.client.streaming.I2PSocket;
 import net.i2p.data.Destination;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -20,15 +22,20 @@ import static info.skyblond.mc.mca.i2p.I2PChatUtils.writeLine;
 public class I2PConnection implements AutoCloseable {
     private final Gson gson = MinecraftChatAlternative.GSON;
 
+    @Nullable
     public final String username;
+    @NotNull
     private final I2PSocket socket;
+    @NotNull
     private final BufferedReader br;
+    @NotNull
     private final BufferedWriter bw;
+    @NotNull
     private final Consumer<I2PConnection> onSocketFailed;
 
     public I2PConnection(
-            String username, I2PSocket socket,
-            Consumer<I2PConnection> onSocketFailed
+            @Nullable String username, @NotNull I2PSocket socket,
+            @NotNull Consumer<I2PConnection> onSocketFailed
     ) throws IOException {
         this.username = username;
         this.socket = socket;

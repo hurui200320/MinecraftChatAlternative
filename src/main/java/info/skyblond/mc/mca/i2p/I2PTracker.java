@@ -8,15 +8,16 @@ import net.i2p.client.streaming.I2PSocketEepGet;
 import net.i2p.client.streaming.I2PSocketManager;
 import net.i2p.crypto.SHA1;
 import net.i2p.data.Destination;
+import org.apache.commons.lang3.RandomUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -28,10 +29,14 @@ public class I2PTracker implements Runnable {
     private static final Charset CHARSET = StandardCharsets.ISO_8859_1;
 
     private final Logger logger = LoggerFactory.getLogger(I2PTracker.class);
+    @NotNull
     private final I2PSocketManager manager;
+    @NotNull
     private final String announceUrl;
-    private final byte[] myPeerId;
+    private final byte[] myPeerId = RandomUtils.nextBytes(20);
+    @NotNull
     private final Destination myDestination;
+    @NotNull
     private final BiConsumer<String, Destination> connectPeer;
 
     // TODO InfoHash per server?
@@ -42,14 +47,12 @@ public class I2PTracker implements Runnable {
     private final AtomicLong announceInterval = new AtomicLong(Long.MAX_VALUE);
 
     public I2PTracker(
-            I2PSocketManager manager,
-            String username,
-            String announceUrl,
-            Destination myDestination,
-            BiConsumer<String, Destination> connectPeer) {
+            @NotNull I2PSocketManager manager,
+            @NotNull String announceUrl,
+            @NotNull Destination myDestination,
+            @NotNull BiConsumer<@Nullable String, @NotNull Destination> connectPeer) {
         this.manager = manager;
         this.announceUrl = announceUrl;
-        this.myPeerId = SHA1.getInstance().digest(username.getBytes(StandardCharsets.UTF_8));
         this.myDestination = myDestination;
         this.connectPeer = connectPeer;
         this.logger.info("Starting tracker {}", announceUrl);
@@ -103,35 +106,10 @@ public class I2PTracker implements Runnable {
                 if (dest == null) {
                     return;
                 }
-                var peerId = getPeerId(pp);
-                if (peerId == null) {
-                    return;
-                }
-                var playerList = MCAUtils.getPlayerList();
-                if (playerList == null) {
-                    return;
-                }
-                playerList.stream()
-                        .filter(it -> Arrays.equals(peerId, SHA1.getInstance().digest(
-                                it.getProfile().getName().getBytes(StandardCharsets.UTF_8))))
-                        .forEach(profile -> {
-                            // for each possible profile
-                            this.connectPeer.accept(profile.getProfile().getName(), dest);
-                        });
+                // use null to close after exchange peers
+                this.connectPeer.accept(null, dest);
             }
         });
-    }
-
-    private byte[] getPeerId(Map<?, ?> pp) {
-        if (pp.get("peer id") instanceof String s) {
-            try {
-                return urlDecode(s);
-            } catch (Throwable t) {
-                return null;
-            }
-        } else {
-            return null;
-        }
     }
 
     private Destination getDestination(Map<?, ?> pp) {
@@ -191,6 +169,7 @@ public class I2PTracker implements Runnable {
         if (get.fetch(45 * 1000) && get.getStatusCode() == 200) {
             return out.toByteArray();
         } else {
+            this.logger.warn("Wrong response: {}\nAt: {}", out.toString(CHARSET), url);
             return null;
         }
     }
@@ -198,9 +177,4 @@ public class I2PTracker implements Runnable {
     private static String urlEncode(byte[] binary) {
         return URLEncoder.encode(new String(binary, CHARSET), CHARSET);
     }
-
-    private static byte[] urlDecode(String s) {
-        return URLDecoder.decode(s, CHARSET).getBytes(CHARSET);
-    }
-
 }

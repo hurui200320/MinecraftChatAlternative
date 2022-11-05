@@ -10,13 +10,13 @@ import info.skyblond.mc.mca.model.MCARequest;
 import info.skyblond.mc.mca.model.MessagePayload;
 import net.i2p.client.streaming.I2PSocket;
 import net.minecraft.text.Text;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Supplier;
 
@@ -28,18 +28,22 @@ import static info.skyblond.mc.mca.i2p.I2PChatUtils.writeLine;
 class I2PClientSocketHandler implements Runnable {
     private final Logger logger = LoggerFactory.getLogger(I2PClientSocketHandler.class);
 
+    @NotNull
     private final I2PSocket socket;
     private final Gson gson = MinecraftChatAlternative.GSON;
 
+    @NotNull
     private final ConcurrentLinkedQueue<AuthPayload> newPeersQueue;
+    @NotNull
     private final Supplier<String> getConnectionUsername;
-    private final ConcurrentHashMap<String, AuthPayload> knownIds;
+    @NotNull
+    private final ConcurrentLinkedQueue<AuthPayload> knownIds;
 
     public I2PClientSocketHandler(
-            I2PSocket socket,
-            ConcurrentHashMap<String, AuthPayload> knownIds,
-            ConcurrentLinkedQueue<AuthPayload> newPeersQueue,
-            Supplier<String> getConnectionUsername) {
+            @NotNull I2PSocket socket,
+            @NotNull ConcurrentLinkedQueue<AuthPayload> knownIds,
+            @NotNull ConcurrentLinkedQueue<AuthPayload> newPeersQueue,
+            @NotNull Supplier<String> getConnectionUsername) {
         this.socket = socket;
         this.newPeersQueue = newPeersQueue;
         this.getConnectionUsername = getConnectionUsername;
@@ -49,7 +53,7 @@ class I2PClientSocketHandler implements Runnable {
     private String handleAuth(MCARequest request, BufferedWriter bw) throws IOException {
         var payload = request.parseJsonPayload(this.gson, AuthPayload.class);
         try {
-            if (!payload.verify()) {
+            if (payload.verifyFailed()) {
                 // failed to verify
                 writeLine(bw, "Failed to verify your id payload");
                 return null;
@@ -60,22 +64,18 @@ class I2PClientSocketHandler implements Runnable {
                 writeLine(bw, "Failed to get local player list");
                 return null;
             }
-            var playerOptional = playerList.stream()
-                    .filter(it -> it.getProfile().getId().equals(payload.profileUUID()))
-                    .map(it -> it.getProfile().getName())
-                    .findAny();
-            // TODO: offline will give false uuid in player list,
-            //       while online client is using real uuid.
-            //       miss match will result in fake not in same server error
-            if (playerOptional.isEmpty()) {
+            if (playerList.stream()
+                    .noneMatch(it -> it.equals(payload.username()))) {
                 writeLine(bw, "You're in different server");
                 return null;
             }
-            var playerName = playerOptional.get();
-            this.knownIds.put(playerName, payload);
+            this.knownIds.stream()
+                    .filter(it -> it.username().equals(payload.username()))
+                    .findAny().ifPresent(this.knownIds::remove);
+            this.knownIds.add(payload);
             // everything is ok, auth done
             writeLine(bw, "ok");
-            return playerName;
+            return payload.username();
         } catch (Exception e) {
             // failed to verify
             writeLine(bw, e.getMessage());
@@ -90,7 +90,7 @@ class I2PClientSocketHandler implements Runnable {
         // save to queue
         this.newPeersQueue.addAll(payload);
         // return all auth we know
-        writeLine(bw, this.gson.toJson(this.knownIds.values().stream().toList()));
+        writeLine(bw, this.gson.toJson(this.knownIds.stream().toList()));
     }
 
     private void handleRequest(MCARequest request, BufferedWriter bw) throws IOException {

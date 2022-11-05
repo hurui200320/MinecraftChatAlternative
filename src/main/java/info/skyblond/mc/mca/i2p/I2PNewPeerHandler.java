@@ -3,17 +3,23 @@ package info.skyblond.mc.mca.i2p;
 import info.skyblond.mc.mca.MCAUtils;
 import info.skyblond.mc.mca.model.AuthPayload;
 import net.i2p.data.Destination;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 
 class I2PNewPeerHandler implements Runnable {
+    @NotNull
     private final ConcurrentLinkedQueue<AuthPayload> newPeersQueue;
+    @NotNull
     private final BiConsumer<String, Destination> connectPeer;
 
 
-    I2PNewPeerHandler(ConcurrentLinkedQueue<AuthPayload> newPeersQueue, CopyOnWriteArrayList<I2PConnection> clientSockets, BiConsumer<String, Destination> connectPeer) {
+    I2PNewPeerHandler(
+            @NotNull ConcurrentLinkedQueue<AuthPayload> newPeersQueue,
+            @NotNull BiConsumer<@Nullable String, @NotNull Destination> connectPeer
+    ) {
         this.newPeersQueue = newPeersQueue;
         this.connectPeer = connectPeer;
     }
@@ -34,21 +40,19 @@ class I2PNewPeerHandler implements Runnable {
                     break;
                 }
                 try {
-                    if (!newPeer.verify()) {
+                    if (newPeer.verifyFailed()) {
                         continue;
                     }
                 } catch (Exception e) {
                     // failed to auth
                     continue;
                 }
-                var peerProfile = playerList.stream()
-                        .filter(it -> it.getProfile().getId().equals(newPeer.profileUUID()))
-                        .findAny();
-                if (peerProfile.isEmpty()) {
+                if (playerList.stream()
+                        .noneMatch(it -> it.equals(newPeer.username()))) {
                     // not in same server
                     continue;
                 }
-                var username = peerProfile.get().getProfile().getName();
+                var username = newPeer.username();
                 // we don't care since:
                 //      a) if connect ok -> we connect to new peer
                 //      b) if failed     -> peer is not available

@@ -35,27 +35,25 @@ public class MinecraftChatAlternative implements ClientModInitializer {
     public void onInitializeClient() {
         LOGGER.info("Hello!");
 
+        // start tracker
+        LOGGER.info("Find {} tracker(s)", trackers.size());
+        MCAUtils.runLater(() -> trackers.forEach(t -> MCAUtils.runLater(new I2PTracker(
+                manager, t, PEER.getMyDestination(), PEER::connect))));
+
         MCAUtils.runLater(() -> {
             // TODO: Trigger this when loading new worlds/join servers?
             var minecraft = MinecraftClient.getInstance();
             while (minecraft.getProfileKeys() == null) {
-                LOGGER.info("Account profile keys not found... Waiting...");
-                MCAUtils.sleepInaccurate(1000);
+                LOGGER.warn("Account profile keys not found");
+                MCAUtils.sleepInaccurate(3000);
             }
             while (MCAUtils.getCurrentUsername() == null) {
-                MCAUtils.sleepInaccurate(1000);
+                MCAUtils.sleepInaccurate(3000);
             }
             var self = MCAUtils.getCurrentUsername();
-            LOGGER.info("Find {} tracker(s)", trackers.size());
-            // start tracker
-            trackers.forEach(t -> MCAUtils.runLater(new I2PTracker(
-                    manager, self, t, PEER.getMyDestination(), PEER::connect)));
-            while (MCAUtils.getPlayerList() == null) {
-                MCAUtils.sleepInaccurate(1000);
-            }
             // connect to self, so we can receive our own message
             while (!PEER.connect(self, PEER.getMyDestination())) {
-                LOGGER.warn("Failed to make self-connect, retry...");
+                LOGGER.error("Failed to make self-connect, retry...");
                 MCAUtils.sleepInaccurate(5000);
             }
             LOGGER.info("I2P self dest: " + PEER.getMyDestination().toBase64());

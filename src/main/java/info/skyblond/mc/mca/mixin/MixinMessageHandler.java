@@ -1,6 +1,7 @@
 package info.skyblond.mc.mca.mixin;
 
 import info.skyblond.mc.mca.MCAUtils;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.message.MessageHandler;
 import net.minecraft.network.message.MessageType;
 import net.minecraft.network.message.SignedMessage;
@@ -18,10 +19,17 @@ public abstract class MixinMessageHandler {
     private void onChatMessage(SignedMessage message, MessageType.Parameters params, CallbackInfo ci) {
         var text = message.signedBody().content().plain();
         if (text.startsWith("mca:id:i2p:")) {
-            var playerList = MCAUtils.getPlayerList();
+            var minecraft = MinecraftClient.getInstance();
+            var networkHandler = minecraft.getNetworkHandler();
+            if (networkHandler == null) {
+                return;
+            }
+            var playerList = networkHandler.getPlayerList();
             if (playerList == null) {
                 return;
             }
+            // The uuid here might be fake uuid
+            // search the player list to get username
             var username = playerList.stream()
                     .filter(it -> it.getProfile().getId().equals(message.signedHeader().sender()))
                     .map(it -> it.getProfile().getName())

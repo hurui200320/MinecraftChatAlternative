@@ -3,7 +3,6 @@ package info.skyblond.mc.mca.mixin;
 import info.skyblond.mc.mca.MCAUtils;
 import info.skyblond.mc.mca.model.MCAPlatform;
 import info.skyblond.mc.mca.model.MessagePayload;
-import net.i2p.I2PAppContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.text.Text;
@@ -45,12 +44,11 @@ public abstract class MixinClientPlayerEntity {
 
             switch (message.substring(0, firstSpace)) {
                 case "!foo" -> {
-                    var b32Address = PEER.getMyDestination().toBase32();
-                    var dest = I2PAppContext.getGlobalContext().namingService().lookup(b32Address);
-                    MCAUtils.addSystemMessageToChat(MCAPlatform.MCA, Text.literal(
-                            dest.equals(PEER.getMyDestination()) + ""));
+
+
                 }
                 case "!expose" -> {
+                    // TODO expose to someone using /msg <target> mca:id:i2p:...?
                     if (minecraft.player != null) {
                         minecraft.player.sendChatMessage("mca:id:i2p:" + PEER.getMyDestination().toBase32(), null);
                     }

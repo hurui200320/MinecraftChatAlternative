@@ -6,31 +6,38 @@ import net.i2p.client.streaming.I2PServerSocket;
 import net.i2p.client.streaming.I2PSocket;
 import net.i2p.client.streaming.RouterRestartException;
 import net.i2p.util.I2PThread;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Function;
 
 class I2PServerSocketHandler implements Runnable {
     private final Logger logger = LoggerFactory.getLogger(I2PServerSocketHandler.class);
 
+    @NotNull
     private final I2PServerSocket serverSocket;
-    private final ConcurrentHashMap<String, AuthPayload> knownIds;
+    @NotNull
     private final ConcurrentLinkedQueue<AuthPayload> newPeersQueue;
+    @NotNull
     private final Function<I2PSocket, String> getConnectionUsername;
 
+    private final ConcurrentLinkedQueue<AuthPayload> knownIds = new ConcurrentLinkedQueue<>();
+
+    public @NotNull List<AuthPayload> getKnownIds() {
+        return this.knownIds.stream().toList();
+    }
+
     public I2PServerSocketHandler(
-            I2PServerSocket serverSocket,
-            ConcurrentHashMap<String, AuthPayload> knownIds,
-            ConcurrentLinkedQueue<AuthPayload> newPeersQueue,
-            Function<I2PSocket, String> getConnectionUsername
+            @NotNull I2PServerSocket serverSocket,
+            @NotNull ConcurrentLinkedQueue<AuthPayload> newPeersQueue,
+            @NotNull Function<I2PSocket, String> getConnectionUsername
     ) {
         this.serverSocket = serverSocket;
-        this.knownIds = knownIds;
         this.newPeersQueue = newPeersQueue;
         this.getConnectionUsername = getConnectionUsername;
     }
@@ -46,7 +53,7 @@ class I2PServerSocketHandler implements Runnable {
                             socket, this.knownIds, this.newPeersQueue,
                             () -> this.getConnectionUsername.apply(socket)));
                     thread.setName("ClientHandler");
-                    thread.setDaemon(false);
+                    thread.setDaemon(true);
                     thread.start();
                 }
             } catch (RouterRestartException e) {
