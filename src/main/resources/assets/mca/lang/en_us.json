@@ -1,10 +1,17 @@
 {
-  "chat.mca.text": "[%s] <%s> %s",
-  "chat.mca.text.narrate": "%s on %s says %s",
-  "chat.mca.system": "[%s] %s",
-  "chat.mca.system.narrate": "%s: %s",
-  "chat.mca.incoming": "[%s] <%s> whispers to you: %s",
-  "chat.mca.incoming.narrate": "%s on %s whispers to you: %s",
-  "chat.mca.outgoing": "You whisper to [%s] <%s>: %s",
-  "chat.mca.outgoing.narrate": "You whisper to %s on %s: %s"
+  "chat.mca.system": "[MCA] %s",
+  "chat.mca.system.narrate": "MCA: %s",
+  "chat.mca.i2p.broadcast": "[I2P] <%s> %s",
+  "chat.mca.i2p.broadcast.narrate": "%s on I2P says %s",
+  "chat.mca.i2p.incoming": "[I2P] <%s> whispers to you: %s",
+  "chat.mca.i2p.incoming.narrate": "%s on I2P whispers to you: %s",
+  "chat.mca.i2p.outgoing": "You whisper to [I2P] <%s>: %s",
+  "chat.mca.i2p.outgoing.narrate": "You whisper to %s on I2P: %s",
+  "text.mca.system.connection.incoming": "Accept connection from %s",
+  "text.mca.system.connection.outgoing": "Connected to %s",
+  "text.mca.system.connection.disconnected": "Disconnected by %s, because %s",
+  "text.mca.system.connection.socket_closed": "Socket with %s closed",
+  "text.mca.system.error.general": "Error occurred, see log for more info",
+  "text.mca.system.error.peer_stopped": "I2P Peer stopped. This should never have happened.",
+  "text.mca.system.error.on_error_reply": "Player %s replies an error to your previous request. See log for more info."
 }

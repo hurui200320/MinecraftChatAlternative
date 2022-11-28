@@ -3,7 +3,12 @@ plugins {
     id 'maven-publish'
     // for external java lib
     id 'java-library'
+    // pack libs in our own jar
     id 'com.github.johnrengelman.shadow' version '7.1.2'
+    // kotlin
+    id "org.jetbrains.kotlin.jvm" version "1.7.21"
+    // kotlinx serialization
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.7.21'
 }
 
 version = project.mod_version
@@ -15,28 +20,36 @@ repositories {
     // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
     // See https://docs.gradle.org/current/userguide/declaring_repositories.html
     // for more information about repositories.
+    maven { url 'https://jitpack.io' }
+    // for test only
+//    mavenLocal()
+    mavenCentral()
 }
 
 dependencies {
+
     // To change the versions see the gradle.properties file
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-//    mappings loom.officialMojangMappings()
+    // mappings loom.officialMojangMappings()
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
     // run with online
     modImplementation "com.ptsmods:devlogin:3.1.1"
+    // kotlin
+    modImplementation "net.fabricmc:fabric-language-kotlin:1.8.6+kotlin.1.7.21"
+    // kotlin logger
+    shadow(implementation "io.github.microutils:kotlin-logging-jvm:3.0.4")
+    // i2p-p2p-lib
+    shadow(implementation "info.skyblond:i2p-p2p-chat:0.0.4")
+    // Fabric API. You need this to load translation
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    // I2P, shadowed external lib
-    shadow(implementation('net.i2p:i2p:1.9.1'))
-    shadow(implementation('net.i2p.client:streaming:1.9.1'))
-    // newer gson with record supported
-    shadow(implementation('com.google.code.gson:gson:2.10'))
-    // bencode
-    shadow(implementation('com.dampcake:bencode:1.4'))
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
+}
 
-    // Fabric API. This is technically optional, but you probably want it anyway.
-//    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+test {
+    useJUnitPlatform()
 }
 
 processResources {
@@ -72,6 +85,12 @@ java {
     withSourcesJar()
 }
 
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        jvmTarget = JavaLanguageVersion.of(targetJavaVersion)
+    }
+}
+
 jar {
     from("LICENSE") {
         rename { "${it}_${project.archivesBaseName}" }
@@ -83,7 +102,6 @@ shadowJar {
     archiveClassifier.set("mca-shadow")
     // avoid classpath collide
     relocate "net.i2p", "info.skyblond.mc.mca.shadow.net.i2p"
-    relocate "com.google.gson", "info.skyblond.mc.mca.shadow.com.google.gson"
     relocate "com.dampcake.bencode", "info.skyblond.mc.mca.shadow.com.dampcake.bencode"
 }
 

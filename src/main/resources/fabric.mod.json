@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "mca",
+  "id": "minecraft-chat-alternative",
   "version": "${version}",
   "name": "MinecraftChatAlternative",
-  "description": "Strips the in-game chat as much as possible. No in-game chat, no report.",
+  "description": "Replace the in-game chat. No in-game chat, no report.",
   "authors": [
     "hurui200320"
   ],
@@ -17,14 +17,20 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "info.skyblond.mc.mca.MinecraftChatAlternative"
+      {
+        "adapter": "kotlin",
+        "value": "info.skyblond.mc.mca.ClientModEntry"
+      }
     ]
   },
   "mixins": [
     "MinecraftChatAlternative.mixins.json"
   ],
   "depends": {
+    "fabric-language-kotlin": ">=1.8.6+kotlin.1.7.21",
     "fabricloader": ">=0.14.10",
-    "minecraft": "1.19.2"
+    "fabric-api": "*",
+    "minecraft": "1.19.2",
+    "java": ">=17"
   }
 }

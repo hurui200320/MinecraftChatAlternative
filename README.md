@@ -1,5 +1,7 @@
 # MinecraftChatAlternative
 
+TODO: The following readme is outdated.
+
 ## What is this?
 
 This is a fabric mod for Minecraft that replaced the original in-game chat. This is a demonstration of what we can do to f??k Microsoft in adding insecure censorship into our beloved game Minecraft. This is my first Minecraft mod ever, it's NOT a user-friendly mod. But if you're a developer seeking for ideas or solutions, you're welcome to use the code.

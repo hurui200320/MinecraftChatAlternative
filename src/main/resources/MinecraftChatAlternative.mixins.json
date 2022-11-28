@@ -6,8 +6,9 @@
   "mixins": [
   ],
   "client": [
+    "MixinClientPlayerEntity",
     "MixinMessageHandler",
-    "MixinClientPlayerEntity"
+    "MixinPlayerListHud"
   ],
   "injectors": {
     "defaultRequire": 1
