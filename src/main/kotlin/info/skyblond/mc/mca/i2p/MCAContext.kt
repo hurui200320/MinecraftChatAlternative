@@ -13,8 +13,7 @@ class MCAContext(
     var username: String? = null
         private set
 
-    override val nickname: String?
-        get() = username
+    override val nickname: String? by this::username
 
     override var peerInfo: PeerInfo? = null
         set(value) {

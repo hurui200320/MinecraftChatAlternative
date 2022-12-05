@@ -72,11 +72,9 @@ object ChatHelper {
      * */
     @JvmStatic
     fun addRawMessage(message: Text, narrateMessage: Text) {
-        val minecraft = MinecraftClient.getInstance()
-        if (minecraft.inGameHud != null) {
-            minecraft.inGameHud.chatHud.addMessage(message)
-        }
-        minecraft.narratorManager.narrateChatMessage { narrateMessage }
+        val minecraft = MinecraftClient.getInstance()!!
+        minecraft.inGameHud?.chatHud?.addMessage(message)
+        minecraft.narratorManager?.narrateChatMessage { narrateMessage }
     }
 
     /**

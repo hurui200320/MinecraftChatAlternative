@@ -186,7 +186,6 @@ fun createMessageHandler(
                     )
                 )
             }
-
         }
     },
     // In case we're missing something

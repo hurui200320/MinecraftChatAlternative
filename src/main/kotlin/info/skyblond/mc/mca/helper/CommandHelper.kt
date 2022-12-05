@@ -16,7 +16,7 @@ import net.minecraft.text.Text
 object CommandHelper {
     private val logger = KotlinLogging.logger { }
     private const val commandPrefix = "!"
-    private val commands: List<MCACommand> = buildList {
+    private val commands: Set<MCACommand> = buildSet {
         registerCommand(
             commandName = "mc",
             description = "send your chat using minecraft's og chat",
@@ -169,8 +169,9 @@ object CommandHelper {
         }
     }
 
-    private fun MutableList<MCACommand>.registerCommand(
-        commandName: String, description: String,
+    private fun MutableSet<MCACommand>.registerCommand(
+        commandName: String,
+        description: String,
         parameterList: List<Pair<String, String>>,
         action: (String) -> Unit
     ) = require(
@@ -179,30 +180,12 @@ object CommandHelper {
                 commandName = commandName,
                 description = description,
                 parameterList = parameterList,
-                _action = action
+                actionInternal = action
             )
         )
     ) { "Duplicated command name: $commandName" }
 
     private fun MutableSet<MCACommand>.registerCommand(
-        commandName: String,
-        description: String,
-        parameterList: List<Pair<String, String>>,
-        action: (String) -> Unit
-    ) =
-        require(
-            this.add(
-                MCACommand(
-                    commandName = commandName,
-                    description = description,
-                    parameterList = parameterList,
-                    _action = action
-                )
-            )
-        ) { "Duplicated subcommand name: $commandName" }
-
-    @JvmName("registerCommandWithSubCommands")
-    private fun MutableList<MCACommand>.registerCommand(
         path: String,
         description: String,
         block: MutableSet<MCACommand>.() -> Unit
@@ -211,7 +194,7 @@ object CommandHelper {
             MCACommand(
                 commandName = path,
                 description = description,
-                subCommands = mutableSetOf<MCACommand>().apply(block)
+                subCommands = buildSet(block)
             )
         )
     ) { "Duplicated command name: $path" }

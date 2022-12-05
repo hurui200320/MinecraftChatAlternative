@@ -3,7 +3,6 @@ package info.skyblond.mc.mca.helper
 import net.minecraft.client.MinecraftClient
 import net.minecraft.util.WinNativeModuleUtil
 import net.minecraft.util.crash.CrashReport
-import java.util.*
 
 /**
  * Useful things for minecraft related things.
@@ -60,11 +59,4 @@ object MinecraftHelper {
         WinNativeModuleUtil.addDetailTo(crashReportSection)
         MinecraftClient.printCrashReport(crashReport)
     }
-
-    @JvmStatic
-    fun resolveUsernameFromUUID(uuid: UUID): String? =
-        MinecraftClient.getInstance()?.networkHandler
-            ?.playerList
-            ?.find { it.profile.id == uuid }
-            ?.profile?.name
 }

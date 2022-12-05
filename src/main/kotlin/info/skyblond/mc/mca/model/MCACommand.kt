@@ -8,9 +8,9 @@ class MCACommand(
     val description: String,
     val parameterList: List<Pair<String, String>> = emptyList(),
     val subCommands: Set<MCACommand> = emptySet(),
-    _action: ((String) -> Unit)? = null
+    actionInternal: ((String) -> Unit)? = null
 ) {
-    private val action: (String) -> Unit = _action ?: { message ->
+    private val action: (String) -> Unit = actionInternal ?: { message ->
         var firstSpace: Int = message.indexOf(' ')
         if (firstSpace == -1) {
             firstSpace = message.length
@@ -27,7 +27,7 @@ class MCACommand(
     init {
         require(!commandName.contains(" ")) { "Command name contains space" }
         require(commandName != "help") { "Command help is a internal command" }
-        if (_action == null) {
+        if (actionInternal == null) {
             // contains sub command
             require(subCommands.isNotEmpty()) { "Commands without action should have subcommands" }
         }
